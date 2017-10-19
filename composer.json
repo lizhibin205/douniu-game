@@ -1,0 +1,21 @@
+{
+    "name":"lizhibin/douniu-game",
+    "description": "douniu-game",
+    "authors":[
+        {"name":"lizhibin"}
+    ],
+    "require": {
+        "php":">=5.5.9"
+    },
+    "autoload":{
+        "psr-4":{
+            "BGame\\Douniu\\" : "lib/"
+        }
+    },
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.phpcomposer.com"
+        }
+    }
+}
