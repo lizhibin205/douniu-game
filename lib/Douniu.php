@@ -5,10 +5,8 @@ namespace BGame\Douniu;
  * Date: 2017/10/19
  * Time: 21:17
  * 定义游戏规则配置数据格式如下
- * 底分：score【1,3,5,10,20】
- * 规则、牌型倍数：rule【1,2】，types【1,2,3】
- * 房卡游戏局数：gamenum【10:1,20:2】
- * 固定上庄：openroom【0,100,300,500】
+ * 卡牌：代码1-52，1方块A，2梅花A，3红桃A，4，黑桃A，5方块2……
+ * 判断牛的结果：0是无牛，1-9牛几，10牛牛，31五花牛，32五小牛
  */
 class Douniu
 {
@@ -38,188 +36,169 @@ class Douniu
 
     /**
      * 初始化牌局
-     * @param number $numberPlayer 玩家，key表示玩家标志
-     * @return void
+     * @param array $numberPlayer 玩家数组，数组的值表示玩家标识
+     * @return $this
      */
     public function init(array $numberPlayer)
     {
+        //最多支持10个玩家
+        if (count($numberPlayer) > 10) {
+            throw new Exception("斗牛：最多支持10个玩家");
+        }
         $sliceOffset = 0;
         foreach ($numberPlayer as $player) {
             //为每个玩家分配5张牌
             $this->players[$player] = array_slice($this->cards, $sliceOffset, 5);
             $sliceOffset += 5;
         }
+        return $this;
     }
 
     /**
-     * 传入纸牌编号返回当前纸牌的点数
-     * @param $i 纸牌序号
-     * @return float|int
-     */
-    public function getscore($i)
-    {
-        return ceil($i / 4) < 10 ? ceil($i / 4) : 10;
-    }
-    /**
-     * 传入纸牌编号返回当前纸牌的点数
-     * @param $i 纸牌序号
-     * @return float|int
-     */
-    public function getscoreorigin($i)
-    {
-        return ceil($i / 4);
-    }
-    /**
-     * 传入纸牌编号，返回当前纸牌的名称
-     * @param $i 纸牌序号
-     * @return string
-     */
-    public function getcardname($i)
-    {
-        $name = array('方块 <span style="color:#f00;">♦</span> ', '草花 ♣ ', '红桃 <span style="color:#f00;">♥</span> ', '黑桃 ♠ ');
-        $num = array('A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K');
-        $namekey = ($i % 4) > 0 ? ($i % 4 - 1) : 3;
-        $numkey = ceil($i / 4) - 1;
-        return $name[$namekey] . $num[$numkey];
-    }
-
-    /**
-     * 从传入数组中任意取出三个元素进行组合，返回所有可能
-     * @param $a 原数组
-     * @param $m 取出组合个数
-     * @return array 返回数组
-     */
-    public function combination($a, $m)
-    {
-        $r = array();
-        $n = count($a);
-        if ($m <= 0 || $m > $n) {
-            return $r;
-        }
-        for ($i = 0; $i < $n; $i++) {
-            $t = array($a[$i]);
-            if ($m == 1) {
-                $r[] = $t;
-            } else {
-                $b = array_slice($a, $i + 1);
-                $c = $this->combination($b, $m - 1);
-                foreach ($c as $v) {
-                    $r[] = array_merge($t, $v);
-                }
-            }
-        }
-        return $r;
-    }
-
-    /**
-     * 计算牛的组合 aakel
-     * @param array $cards
+     * 返回牌局结果
      * @return array
      */
-    public function niucount($cards = array())
+    public function getResult()
     {
-        $count = array();
-        $arr = $this->combination($cards, 3);
-        foreach ($arr as $k => $v) {
-            $sum = $this->getscore($v[0]) + $this->getscore($v[1]) + $this->getscore($v[2]);
-            if ($sum % 10 == 0) {
-                $count[] = $v;
+        $result = [];
+        //返回玩家的数据
+        $result['players'] = [];
+        foreach ($this->players as $playerKey => $player) {
+            //计算牌型
+            $paixing = $player;
+            array_walk($paixing, [$this, 'changeCardIdToName']);
+            //计算牛什么鬼
+            $niu = $this->getNiu($player);
+
+            $result['players'][$playerKey] = [
+                'cards' => $player,//卡牌集合
+                'paixing' => $paixing,//卡牌集合的名称
+                'niu' => $niu,//牌型
+                'max_card' => max($player)//最大的一张牌
+            ];
+        }
+        //比较玩家排序
+        uasort($result['players'], function ($valA, $valB) {
+            if ($valA['niu'] == $valB['niu']) {
+                return $valA['max_card'] > $valB['max_card'] ? -1 : 1;
             }
-        }
-        return $count;
-    }
-
-
-    public function getniuname($cards = array()){
-        $ret = $this->getniu($cards);
-        if($ret === 0){
-            return 10;
-        }
-        if($ret > 0){
-            return $ret;
-        }
-        if($ret === false){
-            return 0;
-        }
-    }
-
-    public function getmax($cards){
-        $ret = array();
-        foreach($cards as $k => $v) {
-            $namescore = (($v % 4) > 0 ? ($v % 4 - 1) : 3) + 1;
-            $keyscore = $this->getscoreorigin($v);
-            $ret[] = $namescore + $keyscore*$keyscore;
-        }
-        return max($ret);
-    }
-
-    public function ret($cards){
-        //获取牛的类型
-        $type = $this->getniuname($cards);
-        if($type !== false){
-            $type += 13;
-            $type = $type*$type*$type*$type;
-        }
-        $ret = $type + $this -> getmax($cards);
-
-        return $ret;
+            return $valA['niu'] > $valB['niu'] ? -1 : 1;
+        });
+        $result['player_sequeue'] = array_keys($result['players']);
+        return $result;
     }
 
     /**
-     * bool false 是无牛   1-9牛几  0牛牛  10五花牛   11炸弹牛   12小牛牛
-     * @param $cards 5张纸牌的数组
-     * @return mixed
+     * 传入纸牌编号，返回当前纸牌的名称
+     * @param ref $cardId 纸牌序号
+     * @return void
      */
-    public function getniu($cards)
+    protected function changeCardIdToName(&$cardId)
     {
+        $name = ['方块', '草花', '红桃', '黑桃'];
+        $num = ['A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K'];
+        $namekey = ($cardId % 4) > 0 ? ($cardId % 4 - 1) : 3;
+        $numkey = ceil($cardId / 4) - 1;
+        $cardId = $name[$namekey] . $num[$numkey];
+    }
 
-        //是否五小
-        $ismin = true;
+    /**
+     * 计算牛什么鬼
+     * 0是无牛，1-9牛几，10牛牛
+     * @param $cards 5张纸牌的数组
+     * @return int
+     */
+    protected function getNiu($cards)
+    {
+        //特殊牌型
         //是否五花
-        $ismax = true;
-        //是否炸弹
-        $isbomb = false;
-        $isbombcount = array();
-        foreach($cards as $k => $v){
-            if($this->getscore($v) > 5){
-                //五小不成立
-                $ismin = false;
-            }
-            if($this->getscoreorigin($v) <= 10){
-                //五花牛不成立
-                $ismax = false;
-            }
-            $isbombcount[] = (int)$this->getscoreorigin($v);
+        if ($this->isWuHua($cards)) {
+            return 31;
         }
+        //是否五小牛
+        if ($this->isWuXiaoNiu($cards)) {
+            return 32;
+        }
+        //普通牌型
+        return $this->getNormalNiu($cards);
+    }
 
-
-        $isbombarr = array_count_values($isbombcount);
-        if(max($isbombarr) >= 4){
-            $isbomb = true;
-        }
-        if($ismin){
-            return 13;
-        }
-        if($isbomb){
-            return 12;
-        }
-        if($ismax){
-            return 11;
-        }
-
-        $return = array();
-        $count = $this->niucount($cards);
-        foreach ($count as $k => $v) {
-            $ret = array_diff($cards, $v);
-            $socre = 0;
-            foreach($ret as $val){
-                $socre += $this->getscore($val);
+    /**
+     * 计算牛什么鬼：普通牌型判断
+     * 0是无牛，1-9牛几，10牛牛
+     * @param $cards 5张纸牌的数组
+     * @return int
+     */
+    protected function getNormalNiu($cards)
+    {
+        $compare = [];//待对比的数据
+        //每3张牌组合，计算结果
+        $pailie = [
+            [0, 1, 2], [0, 1, 3], [0, 1, 4], [0, 2, 3], [0, 2, 4], [0, 3, 4],
+            [1, 2, 3], [1, 2, 4], [1, 3, 4],
+            [2, 3, 4]
+        ];
+        foreach ($pailie as $pai) {
+            //拆分成2部分
+            $partA = [$cards[$pai[0]], $cards[$pai[1]], $cards[$pai[2]]];
+            $partB = array_diff($cards, $partA);
+            $partASum = 0;
+            foreach ($partA as $a) {
+                $partASum += $this->getScore($a);
             }
-            $return[] =  $socre%10;
+            if ($partASum % 10 > 0) {
+                continue;
+            }
+            $partBSum = 0;
+            foreach ($partB as $b) {
+                $partBSum += $this->getScore($b);
+            }
+            $compare[] = $partBSum % 10;
         }
-        if(count($return) > 0){
-            return max($return);
+        return isset($compare[0]) ? max($compare) : 0;
+    }
+
+    /**
+     * 计算牛什么鬼：是否五花
+     * @param $cards 5张纸牌的数组
+     * @return boolean
+     */
+    protected function isWuHua($cards)
+    {
+        foreach ($cards as $c) {
+            if ($c <= 40) {
+                return false;
+            }
         }
-        return false;
+        return true;
+    }
+
+    /**
+     * 计算牛什么鬼：是否五小牛
+     * @param $cards 5张纸牌的数组
+     * @return boolean
+     */
+    protected function isWuXiaoNiu($cards)
+    {
+        $sum = 0;
+        foreach ($cards as $c) {
+            $score = $this->getScore($c);
+            if ($score >= 5) {
+                return false;
+            }
+            $sum += $score;
+        }
+        return $sum <= 10;
+    }
+
+    /**
+     * 传入纸牌编号返回当前纸牌的点数
+     * @param int $card 纸牌序号
+     * @return int
+     */
+    protected function getScore($card)
+    {
+        return ceil($card / 4) < 10 ? ceil($card / 4) : 10;
     }
 }
+
