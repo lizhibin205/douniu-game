@@ -1,5 +1,8 @@
 <?php
 namespace BGame\Douniu;
+
+use BGame\Base\Poker;
+
 /**
  * Created by lizhibin.
  * Date: 2017/10/19
@@ -17,6 +20,12 @@ class Douniu
     private $cards = [];
 
     /**
+     * 游戏的扑克牌
+     * @var BGame\Base\Poker
+     */
+    private $poker = null;
+
+    /**
      * @var array
      * 游戏玩家
      */
@@ -29,9 +38,7 @@ class Douniu
     public function __construct()
     {
         //产生一个长度为52的自然数组，代表52张牌，没有鬼牌
-        $this->cards = range(1, 52);
-        //将52张牌的顺序打乱，相当于洗牌
-        shuffle($this->cards);
+        $this->poker = Poker::getNewPoker(Poker::WITHOUT_KING)->shuffle();
     }
 
     /**
@@ -45,11 +52,11 @@ class Douniu
         if (count($numberPlayer) > 10) {
             throw new Exception("斗牛：最多支持10个玩家");
         }
-        $sliceOffset = 0;
+
+        //向每个玩家发5张牌
         foreach ($numberPlayer as $player) {
             //为每个玩家分配5张牌
-            $this->players[$player] = array_slice($this->cards, $sliceOffset, 5);
-            $sliceOffset += 5;
+            $this->players[$player] = $this->poker->deal(5)->toArray();
         }
         return $this;
     }
