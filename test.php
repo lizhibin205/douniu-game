@@ -1,8 +1,13 @@
 <?php 
 use BGame\Douniu\Douniu;
+use BGame\ZhaJinHua\ZhaJinHua;
 
 require __DIR__ . "/vendor/autoload.php";
 
-$game = new Douniu();
-$result = $game->init(['1', '2', '3', '4', '5', '6'])->getResult();
+$douniu = new Douniu();
+$result = $douniu->init(['1', '2', '3', '4', '5', '6'])->getResult();
+//print_r($result);
+
+$zhaJinHua = new ZhaJinHua();
+$result = $zhaJinHua->init(['1', '2', '3', '4', '5', '6'])->getResult();
 print_r($result);
