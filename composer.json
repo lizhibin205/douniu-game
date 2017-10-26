@@ -9,8 +9,9 @@
     },
     "autoload":{
         "psr-4":{
-            "BGame\\Douniu\\" : "lib/",
-            "BGame\\Base\\" : "base/"
+            "BGame\\Douniu\\" : "douniu/",
+            "BGame\\Base\\" : "base/",
+            "BGame\\ZhaJinHua\\" : "zhajinhua/"
         }
     },
     "repositories": {
