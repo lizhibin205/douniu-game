@@ -53,8 +53,13 @@ class ZhaJinHua
         $result = [];
 
         //计算每个玩家牌型
-        foreach ($this->players as $player) {
-            
+        foreach ($this->players as $playerKey => $player) {
+            list ($score, $maxCard) = $player->getScore();
+            $result['player'][$playerKey] = [
+                'score' => $score,
+                'max_card' => $maxCard,
+                'cards' => $player->getCards()
+            ];
         }
 
         return $result;
