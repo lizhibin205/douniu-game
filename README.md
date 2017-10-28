@@ -15,3 +15,11 @@ $game = new BGame\Douniu\Douniu();
 //返回斗牛游戏玩家的结果
 $result = $game->init(['1', '2', '3', '4', '5', '6'])->getResult();
 ```
+
+炸金花
+---------------
+示例代码：
+```php
+$zhaJinHua = new ZhaJinHua();
+$result = $zhaJinHua->init(['1', '2', '3', '4', '5', '6'])->getResult();
+```
